@@ -1,14 +1,33 @@
-import { useState, useEffect, useCallback } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
-import { Coffee, Plus, Search, Calendar, Thermometer, Clock, AlertTriangle, RefreshCw } from 'lucide-react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { Link, useSearchParams, useNavigate } from 'react-router-dom'
+import {
+  Coffee, Plus, Search, Calendar, Thermometer, Clock, AlertTriangle, RefreshCw,
+  Check, GitCompare, X, Trash2
+} from 'lucide-react'
 import type { Batch } from '../../shared/types'
+import {
+  getStoredSelection, setStoredSelection, toggleSelection, COMPARE_MAX
+} from '@/utils/compareSelection'
 
 export default function Home() {
   const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
   const [batches, setBatches] = useState<Batch[]>([])
   const [filter, setFilter] = useState(searchParams.get('beanType') || '')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const currentBeanType = useMemo(() => searchParams.get('beanType') || '', [searchParams])
+  const [selectedIds, setSelectedIds] = useState<string[]>(() => getStoredSelection(currentBeanType))
+  const [compareMode, setCompareMode] = useState(false)
+
+  useEffect(() => {
+    setSelectedIds(getStoredSelection(currentBeanType))
+  }, [currentBeanType])
+
+  useEffect(() => {
+    setStoredSelection(currentBeanType, selectedIds)
+  }, [currentBeanType, selectedIds])
 
   const fetchBatches = useCallback(async () => {
     setLoading(true)
@@ -49,8 +68,38 @@ export default function Home() {
     setSearchParams({})
   }
 
+  function handleToggleSelect(id: string, e: React.MouseEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    const { next, changed } = toggleSelection(selectedIds, id)
+    if (!changed && selectedIds.length >= COMPARE_MAX) {
+      return
+    }
+    setSelectedIds(next)
+  }
+
+  function handleExitCompare() {
+    setCompareMode(false)
+    setSelectedIds([])
+  }
+
+  function handleClearSelection(e: React.MouseEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    setSelectedIds([])
+  }
+
+  function handleGoCompare() {
+    if (selectedIds.length === 0) return
+    navigate(`/compare?ids=${selectedIds.join(',')}`)
+  }
+
+  const canSelect = compareMode
+  const batchCount = selectedIds.length
+  const atMax = batchCount >= COMPARE_MAX
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 pb-28">
       <header className="bg-gradient-to-r from-amber-800 to-orange-700 text-white shadow-lg">
         <div className="max-w-6xl mx-auto px-4 py-8">
           <div className="flex items-center gap-3 mb-2">
@@ -91,13 +140,39 @@ export default function Home() {
             )}
           </form>
 
-          <Link
-            to="/create"
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-lg hover:from-amber-700 hover:to-orange-700 transition-all font-medium shadow-md w-full sm:w-auto justify-center"
-          >
-            <Plus className="w-5 h-5" />
-            新增烘焙批次
-          </Link>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={() => {
+                setCompareMode(!compareMode)
+                if (compareMode) setSelectedIds([])
+              }}
+              className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-colors font-medium shadow-sm w-full sm:w-auto justify-center ${
+                compareMode
+                  ? 'bg-red-600 text-white hover:bg-red-700'
+                  : 'bg-white text-amber-800 border border-amber-200 hover:bg-amber-50'
+              }`}
+            >
+              {compareMode ? (
+                <>
+                  <X className="w-5 h-5" />
+                  退出对比
+                </>
+              ) : (
+                <>
+                  <GitCompare className="w-5 h-5" />
+                  对比模式
+                </>
+              )}
+            </button>
+            <Link
+              to="/create"
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-lg hover:from-amber-700 hover:to-orange-700 transition-all font-medium shadow-md w-full sm:w-auto justify-center"
+            >
+              <Plus className="w-5 h-5" />
+              新增烘焙批次
+            </Link>
+          </div>
         </div>
 
         {loading ? (
@@ -129,36 +204,129 @@ export default function Home() {
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {batches.map((batch) => (
-              <Link
-                key={batch.id}
-                to={`/batch/${batch.id}`}
-                className="block bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all border border-amber-100 hover:border-amber-300 overflow-hidden group"
-              >
-                <div className="bg-gradient-to-r from-amber-100 to-orange-100 px-6 py-4 border-b border-amber-50">
-                  <h3 className="text-xl font-bold text-amber-900 group-hover:text-amber-700 transition-colors">
-                    {batch.beanType}
-                  </h3>
+            {batches.map((batch) => {
+              const isSelected = selectedIds.includes(batch.id)
+              return (
+                <div
+                  key={batch.id}
+                  className={`relative block rounded-2xl shadow-sm border overflow-hidden transition-all ${
+                    isSelected
+                      ? 'ring-4 ring-amber-400 border-amber-300 bg-amber-50'
+                      : 'border-amber-100 hover:border-amber-300 bg-white hover:shadow-lg'
+                  }`}
+                >
+                  <Link
+                    to={canSelect ? undefined : `/batch/${batch.id}`}
+                    onClick={(e) => {
+                      if (canSelect) {
+                        handleToggleSelect(batch.id, e)
+                      }
+                    }}
+                    className="block"
+                  >
+                    <div className="bg-gradient-to-r from-amber-100 to-orange-100 px-6 py-4 border-b border-amber-50">
+                      <div className="flex items-start justify-between">
+                        <h3 className="text-xl font-bold text-amber-900">
+                          {batch.beanType}
+                        </h3>
+                        {canSelect && (
+                          <div
+                            onClick={(e) => handleToggleSelect(batch.id, e)}
+                            className={`w-6 h-6 rounded-md border-2 flex items-center justify-center cursor-pointer transition-colors ${
+                              isSelected
+                                ? 'bg-amber-600 border-amber-600'
+                                : 'bg-white border-gray-300 hover:border-amber-500'
+                            }`}
+                          >
+                            {isSelected && <Check className="w-4 h-4 text-white" />}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="p-6 space-y-3">
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <Calendar className="w-4 h-4 text-amber-600" />
+                        <span>{batch.roastDate}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <Thermometer className="w-4 h-4 text-orange-600" />
+                        <span>入豆 {batch.chargeTemp}°C → 出豆 {batch.dischargeTemp}°C</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <Clock className="w-4 h-4 text-yellow-600" />
+                        <span>一爆: {batch.firstCrackSec} 秒</span>
+                      </div>
+                    </div>
+                  </Link>
+                  {canSelect && isSelected && (
+                    <div
+                      onClick={(e) => handleToggleSelect(batch.id, e)}
+                      className="absolute inset-0 cursor-pointer"
+                    />
+                  )}
                 </div>
-                <div className="p-6 space-y-3">
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <Calendar className="w-4 h-4 text-amber-600" />
-                    <span>{batch.roastDate}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <Thermometer className="w-4 h-4 text-orange-600" />
-                    <span>入豆 {batch.chargeTemp}°C → 出豆 {batch.dischargeTemp}°C</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <Clock className="w-4 h-4 text-yellow-600" />
-                    <span>一爆: {batch.firstCrackSec} 秒</span>
-                  </div>
-                </div>
-              </Link>
-            ))}
+              )
+            })}
           </div>
         )}
       </main>
+
+      {canSelect && (
+        <div className="fixed bottom-0 left-0 right-0 border-t border-gray-200 bg-white/95 backdrop-blur-sm shadow-[0_-4px_20px_rgba(0,0,0,0.08)">
+          <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-gray-700">已选</span>
+                <span
+                  className={`px-3 py-1 rounded-full text-sm font-bold ${
+                    batchCount > 0
+                      ? 'bg-amber-100 text-amber-800'
+                      : 'bg-gray-100 text-gray-500'
+                  }`}
+                >
+                  {batchCount} / {COMPARE_MAX}
+                </span>
+                <span className="text-gray-500 text-sm">批</span>
+              </div>
+              {batchCount > 0 && (
+                <button
+                  type="button"
+                  onClick={handleClearSelection}
+                  className="text-gray-500 hover:text-red-600 text-sm flex items-center gap-1 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  清空
+                </button>
+              )}
+              {atMax && (
+                <span className="text-amber-600 text-sm">已达最大数量</span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleExitCompare}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                disabled={batchCount === 0}
+                onClick={handleGoCompare}
+                className={`px-6 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
+                  batchCount > 0
+                    ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white hover:from-amber-700 hover:to-orange-700 shadow-md'
+                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                }`}
+              >
+                <GitCompare className="w-5 h-5" />
+                进入对比
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -42,6 +42,7 @@ app.use(
  * error handler middleware
  */
 app.use((error: Error, _req: Request, res: Response, _next: NextFunction) => {
+  void error
   res.status(500).json({
     success: false,
     error: 'Server internal error',
