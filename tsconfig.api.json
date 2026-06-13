@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020"],
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "strict": false,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "./api/dist",
+    "rootDir": ".",
+    "allowImportingTsExtensions": false,
+    "resolveJsonModule": true,
+    "types": ["node", "express"]
+  },
+  "include": ["api/**/*.ts", "shared/**/*.ts"],
+  "exclude": ["node_modules", "src", "dist"]
+}

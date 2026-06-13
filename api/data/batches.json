@@ -1,0 +1,71 @@
+[
+  {
+    "id": "mqc9eafxe4kequ",
+    "beanType": "埃塞俄比亚 耶加雪菲",
+    "roastDate": "2024-06-10",
+    "chargeTemp": 200,
+    "firstCrackSec": 480,
+    "dischargeTemp": 220,
+    "samples": [
+      200,
+      209.9,
+      220.7,
+      234.7,
+      244,
+      257,
+      268.2,
+      276.8,
+      289.1,
+      266.5,
+      244.1,
+      220
+    ],
+    "createdAt": "2026-06-13T11:15:28.221Z"
+  },
+  {
+    "id": "mqc9eag5vk41mu",
+    "beanType": "哥伦比亚 慧兰",
+    "roastDate": "2024-06-15",
+    "chargeTemp": 195,
+    "firstCrackSec": 420,
+    "dischargeTemp": 215,
+    "samples": [
+      195,
+      205.9,
+      222.2,
+      233.5,
+      245.9,
+      257.4,
+      273.9,
+      283.5,
+      266.4,
+      250,
+      231.5,
+      215
+    ],
+    "createdAt": "2026-06-13T11:15:28.229Z"
+  },
+  {
+    "id": "mqc9eag8sijvgr",
+    "beanType": "肯尼亚 AA",
+    "roastDate": "2024-06-12",
+    "chargeTemp": 205,
+    "firstCrackSec": 510,
+    "dischargeTemp": 225,
+    "samples": [
+      205,
+      215,
+      228.1,
+      237.7,
+      245.8,
+      259,
+      267.3,
+      277.6,
+      290.6,
+      281.7,
+      254,
+      225
+    ],
+    "createdAt": "2026-06-13T11:15:28.232Z"
+  }
+]
