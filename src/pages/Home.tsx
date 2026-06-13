@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Coffee, Plus, Search, Calendar, Thermometer, Clock } from 'lucide-react'
+import { Coffee, Plus, Search, Calendar, Thermometer, Clock, AlertTriangle, RefreshCw } from 'lucide-react'
 import type { Batch } from '../../shared/types'
 
 export default function Home() {
@@ -8,13 +8,11 @@ export default function Home() {
   const [batches, setBatches] = useState<Batch[]>([])
   const [filter, setFilter] = useState(searchParams.get('beanType') || '')
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetchBatches()
-  }, [searchParams])
-
-  async function fetchBatches() {
+  const fetchBatches = useCallback(async () => {
     setLoading(true)
+    setError(null)
     try {
       const beanType = searchParams.get('beanType')
       const url = beanType ? `/api/batches?beanType=${encodeURIComponent(beanType)}` : '/api/batches'
@@ -22,13 +20,20 @@ export default function Home() {
       const data = await res.json()
       if (data.success) {
         setBatches(data.data)
+      } else {
+        setError(data.error || '加载失败')
       }
-    } catch (error) {
-      console.error('获取批次列表失败:', error)
+    } catch (err) {
+      console.error('获取批次列表失败:', err)
+      setError('网络错误，请稍后重试')
     } finally {
       setLoading(false)
     }
-  }
+  }, [searchParams])
+
+  useEffect(() => {
+    fetchBatches()
+  }, [fetchBatches])
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
@@ -97,6 +102,19 @@ export default function Home() {
 
         {loading ? (
           <div className="text-center py-16 text-gray-500">加载中...</div>
+        ) : error ? (
+          <div className="text-center py-16 bg-white rounded-2xl shadow-sm">
+            <AlertTriangle className="w-16 h-16 mx-auto text-red-300 mb-4" />
+            <p className="text-gray-500 text-lg mb-2">加载失败</p>
+            <p className="text-gray-400 text-sm mb-6">{error}</p>
+            <button
+              onClick={fetchBatches}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium"
+            >
+              <RefreshCw className="w-5 h-5" />
+              重新加载
+            </button>
+          </div>
         ) : batches.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-2xl shadow-sm">
             <Coffee className="w-16 h-16 mx-auto text-amber-300 mb-4" />

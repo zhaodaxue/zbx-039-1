@@ -1,6 +1,4 @@
 import type {
-  ResponsiveContainerProps,
-  LineChartProps,
   LineProps,
   XAxisProps,
   YAxisProps,
@@ -21,12 +19,12 @@ export function transformSamplesToChartData(samples: number[]): TemperatureDataP
   }))
 }
 
-export const responsiveContainerProps: ResponsiveContainerProps = {
-  width: '100%',
+export const responsiveContainerProps = {
+  width: '100%' as const,
   height: 400,
 }
 
-export const lineChartProps: Omit<LineChartProps, 'data'> = {
+export const lineChartProps = {
   margin: { top: 20, right: 30, left: 20, bottom: 20 },
 }
 

@@ -3,28 +3,35 @@ import type { CreateBatchRequest } from '../../shared/types.js'
 export function generateTemperatureSamples(data: CreateBatchRequest): number[] {
   const { chargeTemp, firstCrackSec, dischargeTemp } = data
   const totalMinutes = 12
-  const firstCrackMin = firstCrackSec / 60
+  const firstCrackMin = Math.max(0.1, firstCrackSec / 60)
+  const lastIndex = totalMinutes - 1
   const samples: number[] = []
+
+  const maxFirstCrackRise = Math.max(30, dischargeTemp - chargeTemp - 10)
+  const firstCrackTemp = chargeTemp + Math.min(90, maxFirstCrackRise)
+  const useLinearRamp = firstCrackMin >= lastIndex - 1
 
   for (let i = 0; i < totalMinutes; i++) {
     let temp: number
 
     if (i === 0) {
       temp = chargeTemp
-    } else if (i <= Math.floor(firstCrackMin)) {
+    } else if (i === lastIndex) {
+      temp = dischargeTemp
+    } else if (useLinearRamp) {
+      const progress = i / lastIndex
+      temp = chargeTemp + progress * (dischargeTemp - chargeTemp)
+      temp += (Math.random() - 0.5) * 3
+    } else if (i <= firstCrackMin) {
       const progress = i / firstCrackMin
-      const firstCrackTemp = chargeTemp + 90
       temp = chargeTemp + progress * (firstCrackTemp - chargeTemp)
       temp += (Math.random() - 0.5) * 4
-    } else if (i < totalMinutes - 1) {
+    } else {
       const elapsedAfterFirstCrack = i - firstCrackMin
-      const remaining = (totalMinutes - 1) - firstCrackMin
-      const progress = elapsedAfterFirstCrack / remaining
-      const firstCrackTemp = chargeTemp + 90
+      const remaining = lastIndex - firstCrackMin
+      const progress = remaining > 0 ? elapsedAfterFirstCrack / remaining : 1
       temp = firstCrackTemp + progress * (dischargeTemp - firstCrackTemp)
       temp += (Math.random() - 0.5) * 3
-    } else {
-      temp = dischargeTemp
     }
 
     samples.push(Math.round(temp * 10) / 10)
